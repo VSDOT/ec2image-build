@@ -9,9 +9,11 @@ output "distribution_configuration_myimage_id" {
 output "infrastructure_configuration_ec2_id" {
     value = aws_imagebuilder_infrastructure_configuration.ec2.id
 }
+
 output "aws_launch_template_id" {
   value = aws_launch_template.newtemp.id
 }
+
 output "aws_ami_arn" {
   value = aws_ami.myami.arn
 }

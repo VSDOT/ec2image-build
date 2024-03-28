@@ -296,26 +296,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 resource "aws_iam_role" "ec2_image_build_role" {
   name               = "EC2ImageBuildRole"
   assume_role_policy = <<EOF
@@ -394,7 +374,7 @@ resource "aws_imagebuilder_component" "example_component" {
   version       = var.component-version
   platform      = var.platform
   kms_key_id    = aws_kms_key.fail.arn
-  #"arn:aws:kms:us-east-1:891376931947:key/5f1212a4-500a-4ace-95a2-e34bf14edd53" 
+  
  data = yamlencode({
     phases = [{
       name = "build"
@@ -414,7 +394,7 @@ resource "aws_imagebuilder_component" "example_component" {
 resource "aws_imagebuilder_image_recipe" "example_recipe" {
   name          = "example-recipe"
   parent_image  = "arn:${data.aws_partition.current.partition}:imagebuilder:${data.aws_region.current.name}:aws:image/amazon-linux-2-x86/x.x.x"
-  version       = "1.0.0"
+  version       = "2.0.0"
    block_device_mapping {
     device_name = "/dev/xvdb"
 
@@ -455,7 +435,7 @@ resource "aws_imagebuilder_infrastructure_configuration" "ec2" {
 }
 #Distribution settings
 resource "aws_imagebuilder_distribution_configuration" "myimage" {
-  name = "example"
+  name = "Ec2Dist"
 
   distribution {
     ami_distribution_configuration {
@@ -509,7 +489,7 @@ resource "aws_instance" "example" {
   }
 
   tags = {
-    Name = "example-instance"
+    Name = "My-instance"
   }
 }
 #ami
@@ -525,7 +505,7 @@ resource "aws_ami" "myami" {
     delete_on_termination = true
   }
   tags = {
-    Name = "example-ami"
+    Name = "My-ami"
   }
 }
 #snapshot
@@ -535,14 +515,14 @@ resource "aws_ebs_volume" "example" {
   type              = "gp2" 
 
   tags = {
-    Name = "HelloWorld"
+    Name = "Myebs"
   }
 }
 resource "aws_ebs_snapshot" "example_snapshot" {
   volume_id = aws_ebs_volume.example.id
 
   tags = {
-    Name = "HelloWorld_snap"
+    Name = "Mynew_snap"
   }
 }
 #launch_template
@@ -574,6 +554,7 @@ resource "aws_launch_template" "newtemp" {
     }
   }
 }
+
 
 
 

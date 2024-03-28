@@ -575,5 +575,5 @@ resource "aws_launch_template" "newtemp" {
   }
 }
 
-x
+
 

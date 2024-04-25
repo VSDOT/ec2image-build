@@ -30,11 +30,24 @@ variable "instance_type" {
   description = "Enter your instance_type"
   type        = string
 }
-variable "security_group_ids" {
-  description = "Enter your security_group_ids"
-  type        = list
-}
+
 variable "subnet_id" {
   description = "Enter your subnet_id"
   type        = string
+}
+variable "user_data" {
+  description = "upload your user_data file"
+  type        = string
+}
+variable "root_device_name" {
+  description = "Enter your root_device_name"
+  type        = string
+}
+variable "volume_type" {
+  description = "Enter your volume_type"
+  type        = string
+}
+variable "encrypted" {
+  description = "Enter your encrypted"
+  type        = bool
 }

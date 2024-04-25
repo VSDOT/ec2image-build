@@ -1,8 +1,8 @@
 region                 = "us-east-1"
 
-access-key             = "AKIAZI2LF4ATZUVUF3HZ"
+access-key             = "AKIAXYKJVPMIOKXAF4BW"
 
-secret-key             = "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"
+secret-key             = "SWD/kKJDc0XKsZim88EnqMir/DWbMKcwGgAafanL"
 
 component-name         = "my-component"
 
@@ -14,6 +14,12 @@ enable_key_rotation    = true
 
 instance_type          = "t2.micro"
 
-security_group_ids     = ["sg-123456789"]
+subnet_id              = "subnet-0486e99acb7ebabaa"
 
-subnet_id              = "subnet-0d6a43e3f6a151bd4"
+user_data              = "nginx.sh"
+
+root_device_name       = "/dev/xvda"
+
+volume_type            = "gp2"
+
+encrypted              = true

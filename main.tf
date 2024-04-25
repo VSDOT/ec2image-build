@@ -296,25 +296,25 @@
 
 
 
+
 resource "aws_iam_role" "ec2_image_build_role" {
   name               = "EC2ImageBuildRole"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+  assume_role_policy = jsonencode({
+    "Version"       : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect"    : "Allow",
+        "Principal" : {
+          "Service" : "ec2.amazonaws.com"
+        },
+        "Action"    : "sts:AssumeRole"
+      }
+    ]
+  })
 }
-EOF
-}
+
 resource "aws_iam_policy" "ec2_image_build_policy" {
-  name        = "EC2ImageBuildPolicy"
+  name        = "EC2ImageBuild"
   description = "Policy for EC2 image building"
  
   policy = <<EOF
@@ -331,13 +331,19 @@ resource "aws_iam_policy" "ec2_image_build_policy" {
         "ssmmessages:CreateDataChannel",
         "ssmmessages:OpenControlChannel",
         "ssmmessages:OpenDataChannel",
-        "ec2:RegisterImage"
+        "ec2:RegisterImage",
+        "ec2:RunInstances"
       ],
       "Resource": "arn:aws:ec2:region:account-id:instance/instance-id"
     }
   ]
 }
 EOF
+}
+resource "aws_iam_policy_attachment" "ec2_image_build_policy_attachment" {
+  name       = "EC2ImageBuildRolePolicyAttachment"
+  roles      = [aws_iam_role.ec2_image_build_role.name]
+  policy_arn = aws_iam_policy.ec2_image_build_policy.arn   # Adjust with the appropriate policy for EC2 image building
 }
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
@@ -369,37 +375,88 @@ resource "aws_kms_key_policy" "example" {
 }
 
 #imagebuilder component
-resource "aws_imagebuilder_component" "example_component" {
+# resource "aws_imagebuilder_component" "example_component" {
+#   name          = var.component-name
+#   version       = var.component-version
+#   platform      = var.platform
+#   kms_key_id    = aws_kms_key.fail.arn
+#   #"arn:aws:kms:us-east-1:891376931947:key/5f1212a4-500a-4ace-95a2-e34bf14edd53" 
+#  data = yamlencode({
+#     phases = [{
+#       name = "build"
+#       steps = [{
+#         action = "ExecuteBash"
+#         inputs = {
+#           commands = ["echo 'hello world'"]
+#         }
+#         name      = "example"
+#         onFailure = "Continue"
+#       }]
+#     }]
+#     schemaVersion = 1.0
+#   })
+# }
+#nginx install
+# resource "aws_imagebuilder_component" "nginx_component" {
+#   name          = var.component-name
+#   version       = var.component-version
+#   platform      = var.platform
+#   kms_key_id    = aws_kms_key.fail.arn
+#   data = yamlencode({
+#     schemaVersion = 1.0
+#     phases = [{
+#       name = "build"
+#       steps = [{
+#         name    = "InstallNginx"
+#         action  = "ExecuteBash"
+#         inputs = {
+#           commands = [
+#             "apt-get update",
+#             "apt-get install -y nginx"
+#           ]
+#         }
+#         onFailure = "Continue"
+#       }]
+#     }]
+#     schemaVersion = 1.0
+#   })
+# }
+#nginx.sh file
+resource "aws_imagebuilder_component" "nginx_component" {
   name          = var.component-name
   version       = var.component-version
   platform      = var.platform
   kms_key_id    = aws_kms_key.fail.arn
-  
- data = yamlencode({
+
+  data = jsonencode({
+    schemaVersion = 1.0
     phases = [{
       name = "build"
       steps = [{
-        action = "ExecuteBash"
+        name    = "InstallNginx"
+        action  = "ExecuteBash"
         inputs = {
-          commands = ["echo 'hello world'"]
+          commands = [
+            "chmod +x /nginx.sh",  # script is executable
+            "/nginx.sh"            # Execute the shell script
+          ]
         }
-        name      = "example"
         onFailure = "Continue"
       }]
     }]
-    schemaVersion = 1.0
   })
 }
+
 #Image recipes
 resource "aws_imagebuilder_image_recipe" "example_recipe" {
-  name          = "example-recipe"
+  name          = "nginx-image"
   parent_image  = "arn:${data.aws_partition.current.partition}:imagebuilder:${data.aws_region.current.name}:aws:image/amazon-linux-2-x86/x.x.x"
-  version       = "2.0.0"
+  version       = "1.0.0"
    block_device_mapping {
     device_name = "/dev/xvdb"
 
     ebs {
-      encrypted             = true
+      encrypted             = var.encrypted
       kms_key_id = aws_kms_key.fail.arn
       delete_on_termination = true
       volume_size           = 100
@@ -407,9 +464,10 @@ resource "aws_imagebuilder_image_recipe" "example_recipe" {
     }
   }
   component {
-    component_arn = aws_imagebuilder_component.example_component.arn
+    component_arn = aws_imagebuilder_component.nginx_component.arn
   }
 }
+
 #infrastructure_configuration
 resource "aws_imagebuilder_infrastructure_configuration" "ec2" {
   description                   = "example description"
@@ -417,7 +475,7 @@ resource "aws_imagebuilder_infrastructure_configuration" "ec2" {
   instance_types                = toset([var.instance_type])
   key_pair                      = aws_key_pair.deployer.key_name
   name                          = "ec2-1"
-  security_group_ids            = var.security_group_ids
+  security_group_ids            = ["sg-123456789"]
  # sns_topic_arn                 = aws_sns_topic.user_updates.arn
   subnet_id                     = var.subnet_id
   terminate_instance_on_failure = true
@@ -435,7 +493,7 @@ resource "aws_imagebuilder_infrastructure_configuration" "ec2" {
 }
 #Distribution settings
 resource "aws_imagebuilder_distribution_configuration" "myimage" {
-  name = "Ec2Dist"
+  name = "example"
 
   distribution {
     ami_distribution_configuration {
@@ -476,36 +534,42 @@ resource "aws_iam_instance_profile" "image_builder_instance_profile" {
   role = aws_iam_role.ec2_image_build_role.name
 }
 #ec2
-resource "aws_instance" "example" {
+resource "aws_instance" "myec2" {
   ami           = aws_ami.myami.id  
-  instance_type = "t2.micro"
+  instance_type = var.instance_type
   key_name      = aws_key_pair.deployer.id    # Replace with your key pair name
   subnet_id     = var.subnet_id      
 
   ebs_block_device {
     device_name = "/dev/xvda"
-    volume_type = "gp2"
-    volume_size = 20
+    volume_type = var.volume_type
+    volume_size = 60
   }
+  user_data = var.user_data
 
   tags = {
-    Name = "My-instance"
+    Name = "my-instance"
   }
 }
+# resource "aws_ec2_instance_state" "test" {
+#   instance_id = aws_instance.myec2.id
+#   state       = "stopped"
+# }
 #ami
 resource "aws_ami" "myami" {
-  name               = "ec2-ami"
+  name                = "ec2-ami"
   virtualization_type = "hvm"
-  root_device_name   = "/dev/xvda"
+  root_device_name    = var.root_device_name
+
   ebs_block_device {
     device_name = "/dev/xvda"
     snapshot_id  = aws_ebs_snapshot.example_snapshot.id
-    volume_type = "gp2"
+    volume_type = var.volume_type
     volume_size = 20
     delete_on_termination = true
   }
   tags = {
-    Name = "My-ami"
+    Name = "example-ami"
   }
 }
 #snapshot
@@ -515,14 +579,14 @@ resource "aws_ebs_volume" "example" {
   type              = "gp2" 
 
   tags = {
-    Name = "Myebs"
+    Name = "HelloWorld"
   }
 }
 resource "aws_ebs_snapshot" "example_snapshot" {
   volume_id = aws_ebs_volume.example.id
 
   tags = {
-    Name = "Mynew_snap"
+    Name = "HelloWorld_snap"
   }
 }
 #launch_template
@@ -538,12 +602,12 @@ resource "aws_launch_template" "newtemp" {
       kms_key_id            = aws_kms_key.fail.arn
       delete_on_termination = true
       volume_size           = 100
-      volume_type           = "gp2"
+      volume_type           = var.volume_type
     }
   }
 
   network_interfaces {
-    device_index         = 0
+    device_index         = 1
     associate_public_ip_address = true
   }
 
@@ -554,7 +618,6 @@ resource "aws_launch_template" "newtemp" {
     }
   }
 }
-
 
 
 

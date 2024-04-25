@@ -1,5 +1,5 @@
-output "ec2-build_example_component_arn" {
-  value = aws_imagebuilder_component.example_component.arn
+output "ec2-build_example_nginx_component_arn" {
+  value = aws_imagebuilder_component.nginx_component.arn
 }
 
 output "distribution_configuration_myimage_id" {

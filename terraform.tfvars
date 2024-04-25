@@ -1,8 +1,8 @@
 region                 = "us-east-1"
 
-access-key             = "AKIAXYKJVPMIOKXAF4BW"
+access-key             = "AKIAXYvfdvdKXAF4BW"
 
-secret-key             = "SWD/kKJDc0XKsZim88EnqMir/DWbMKcwGgAafanL"
+secret-key             = "SWD/kKJDc0XKsKcwGgAafanL"
 
 component-name         = "my-component"
 
